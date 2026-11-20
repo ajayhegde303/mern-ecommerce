@@ -65,10 +65,24 @@ export const UserOrders = () => {
     },[])
 
 
-    const handleAddToCart=(product)=>{
-        const item={user:loggedInUser._id,product:product._id,quantity:1}
-        dispatch(addToCartAsync(item))
+    const handleAddToCart = (product) => {
+        const existingCartItem = cartItems.find(item => item.product._id === product._id);
+
+        if (existingCartItem) {
+            // If already in cart, increment quantity
+            const item = {
+                user: loggedInUser._id,
+                product: product._id,
+                quantity: existingCartItem.quantity + 1
+            }
+            dispatch(addToCartAsync(item))
+        } else {
+            // Not in cart, add as new
+            const item = { user: loggedInUser._id, product: product._id, quantity: 1 }
+            dispatch(addToCartAsync(item))
+        }
     }
+
 
 
   return (

@@ -12,7 +12,8 @@ const initialState={
     isFilterOpen:false,
     selectedProduct:null,
     errors:null,
-    successMessage:null
+    successMessage:null,
+    searchTerm: '', // ✨ ADD THIS: To store the current search query
 }
 
 export const addProductAsync=createAsyncThunk("products/addProductAsync",async(data)=>{
@@ -44,6 +45,10 @@ const productSlice=createSlice({
     name:"productSlice",
     initialState:initialState,
     reducers:{
+        // ✨ ADD THIS REDUCER
+        setSearchTerm: (state, action) => {
+            state.searchTerm = action.payload;
+        },
         clearProductErrors:(state)=>{
             state.errors=null
         },
@@ -160,8 +165,10 @@ export const selectProductUpdateStatus=(state)=>state.ProductSlice.productUpdate
 export const selectProductAddStatus=(state)=>state.ProductSlice.productAddStatus
 export const selectProductIsFilterOpen=(state)=>state.ProductSlice.isFilterOpen
 export const selectProductFetchStatus=(state)=>state.ProductSlice.productFetchStatus
+export const selectSearchTerm = (state) => state.ProductSlice.searchTerm; // ✨ ADD THIS SELECTOR
 
 // exporting actions
-export const {clearProductSuccessMessage,clearProductErrors,clearSelectedProduct,resetProductStatus,resetProductUpdateStatus,resetProductAddStatus,toggleFilters,resetProductFetchStatus}=productSlice.actions
+// ✨ ADD `setSearchTerm` TO EXPORTS
+export const {setSearchTerm, clearProductSuccessMessage,clearProductErrors,clearSelectedProduct,resetProductStatus,resetProductUpdateStatus,resetProductAddStatus,toggleFilters,resetProductFetchStatus}=productSlice.actions
 
 export default productSlice.reducer

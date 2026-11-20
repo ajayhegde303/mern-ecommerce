@@ -123,6 +123,28 @@ export const AdminOrders = () => {
                         ))
                       }
                     </TableCell>
+                      <TableCell align="right">
+                          {order.item.map((product) => (
+                              <Stack
+                                  key={product.product._id}
+                                  mt={1}
+                                  flexDirection={'row'}
+                                  alignItems={'center'}
+                                  columnGap={1}
+                                  justifyContent="space-between"
+                              >
+                                  <Avatar src={product.product.thumbnail} />
+                                  <Stack>
+                                      <Typography>{product.product.title}</Typography>
+                                      <Typography variant="body2" color="text.secondary">
+                                          Qty: {product.quantity} | ${product.product.price} each
+                                      </Typography>
+                                  </Stack>
+                              </Stack>
+                          ))}
+                      </TableCell>
+
+
                     <TableCell align="right">{order.total}</TableCell>
                     <TableCell align="right">
                       <Stack>

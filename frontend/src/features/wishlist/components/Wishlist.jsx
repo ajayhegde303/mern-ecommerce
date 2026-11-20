@@ -11,9 +11,8 @@ import { emptyWishlistAnimation, loadingAnimation } from '../../../assets';
 import Lottie from 'lottie-react' 
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { useForm } from "react-hook-form"
-import {addToCartAsync, resetCartItemAddStatus, selectCartItemAddStatus, selectCartItems} from '../../cart/CartSlice'
+import {addToCartAsync,updateCartItemByIdAsync, resetCartItemAddStatus, selectCartItemAddStatus, selectCartItems} from '../../cart/CartSlice'
 import { motion } from 'framer-motion';
-
 export const Wishlist = () => {
 
   const dispatch=useDispatch()
@@ -128,11 +127,45 @@ export const Wishlist = () => {
     setEditIndex(index)
   }
 
-  const handleAddToCart=(productId)=>{
-    const data={user:loggedInUser?._id,product:productId}
-    dispatch(addToCartAsync(data))
-  }
+    const handleAddToCart = (product) => {
+        if (!loggedInUser) {
+            toast.error('Please login to add items to your cart');
+            return;
+        }
 
+        const existingItem = cartItems.find(
+            (item) => item.product._id === product._id && item.user === loggedInUser._id
+        );
+
+        if (existingItem) {
+            const newQuantity = existingItem.quantity + 1;
+
+            if (newQuantity > product.stockQuantity) {
+                toast.warning(`Only ${product.stockQuantity} items are available in stock.`);
+                return;
+            }
+
+            const updatedItem = {
+                ...existingItem,
+                quantity: newQuantity
+            };
+            dispatch(updateCartItemByIdAsync(updatedItem));
+            toast.info('Cart updated successfully');
+        } else {
+            if (product.stockQuantity < 1) {
+                toast.warning('Product is out of stock');
+                return;
+            }
+
+            const newItem = {
+                user: loggedInUser._id,
+                product: product._id,
+                quantity: 1
+            };
+            dispatch(addToCartAsync(newItem));
+            toast.success('Product added to cart');
+        }
+    };
 
   return (
     // parent
@@ -200,10 +233,15 @@ export const Wishlist = () => {
                             </Box>
                           }
 
-                          {
-                            cartItems.some((cartItem)=>cartItem.product._id===item.product._id)?
-                            <Button sx={{mt:4}} size='small' variant='outlined' component={Link} to={'/cart'}>Already in cart</Button>:<Button sx={{mt:4}} size='small' onClick={()=>handleAddToCart(item.product._id)} variant='outlined'>Add To Cart</Button>
-                          }
+                            {
+                                cartItems.some((cartItem)=>cartItem.product._id === item.product._id) ?
+                                    <Button sx={{mt:4}} size='small' variant='outlined' component={Link} to="/cart">
+                                        Already in cart
+                                    </Button> :
+                                    <Button sx={{mt:4}} size='small' onClick={()=>handleAddToCart(item.product)} variant='outlined'>
+                                        Add To Cart
+                                    </Button>
+                            }
                           
                           
                         </Stack>
