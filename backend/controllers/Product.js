@@ -27,6 +27,11 @@ exports.getAll = async (req, res) => {
             filter.category={$in:req.query.category}
         }
 
+        // ✨ ADD THIS BLOCK to handle searching by title
+        if (req.query.searchTerm) {
+            filter.title = { $regex: req.query.searchTerm, $options: 'i' };
+        }
+
         if(req.query.user){
             filter['isDeleted']=false
         }
@@ -44,13 +49,14 @@ exports.getAll = async (req, res) => {
             limit=pageSize
         }
 
+        // No changes needed below, the modified `filter` object will be used automatically
         const totalDocs=await Product.find(filter).sort(sort).populate("brand").countDocuments().exec()
         const results=await Product.find(filter).sort(sort).populate("brand").skip(skip).limit(limit).exec()
 
         res.set("X-Total-Count",totalDocs)
 
         res.status(200).json(results)
-    
+
     } catch (error) {
         console.log(error);
         res.status(500).json({message:'Error fetching products, please try again later'})
@@ -100,5 +106,3 @@ exports.deleteById=async(req,res)=>{
         res.status(500).json({message:'Error deleting product, please try again later'})
     }
 }
-
-

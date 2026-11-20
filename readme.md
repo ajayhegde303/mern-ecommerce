@@ -73,14 +73,15 @@
 Install frontend dependencies
 ```bash
 cd frontend
-npm install
+npm install --legacy-peer-deps
+
 ```
 
 Install backend dependencies
 
 ```bash
 cd backend
-npm install
+npm install --legacy-peer-deps
 ```
 
 
@@ -174,5 +175,3 @@ Once both servers are running, you can access them at the following URL's:
 ## **Bonus**
 Don't forget to star the repository and share your feedback!✨
 
-## Authors
-- [@RishiBakshii](https://github.com/RishiBakshii)

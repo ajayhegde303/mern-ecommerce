@@ -15,19 +15,20 @@ export const CartItem = ({id,thumbnail,title,category,brand,price,quantity,stock
     const is480=useMediaQuery(theme.breakpoints.down(480))
     const is552=useMediaQuery(theme.breakpoints.down(552))
 
-    const handleAddQty=()=>{
-        const update={_id:id,quantity:quantity+1}
-        dispatch(updateCartItemByIdAsync(update))
-    }
-    const handleRemoveQty=()=>{
-        if(quantity===1){
-            dispatch(deleteCartItemByIdAsync(id))
-        }
-        else{
-            const update={_id:id,quantity:quantity-1}
+    const handleAddQty = () => {
+        if (quantity < stockQuantity) {
+            const update = { _id: id, quantity: quantity + 1 }
             dispatch(updateCartItemByIdAsync(update))
+        } else {
+            alert(`Only ${stockQuantity} items are available in stock.`)
         }
     }
+    const handleRemoveQty = () => {
+        if (quantity > 1) {
+            const update = { _id: id, quantity: quantity - 1 };
+            dispatch(updateCartItemByIdAsync(update));
+        }
+    };
 
     const handleProductRemove=()=>{
         dispatch(deleteCartItemByIdAsync(id))
@@ -51,7 +52,7 @@ export const CartItem = ({id,thumbnail,title,category,brand,price,quantity,stock
                 <Stack flexDirection={'row'} alignItems={'center'}>
                     <IconButton onClick={handleRemoveQty}><RemoveIcon fontSize='small'/></IconButton>
                     <Typography>{quantity}</Typography>
-                    <IconButton onClick={handleAddQty}><AddIcon fontSize='small'/></IconButton>
+                    <IconButton onClick={handleAddQty} disabled={quantity >= stockQuantity}><AddIcon fontSize='small'/></IconButton>
                 </Stack>
             </Stack>
         </Stack>

@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
 import { clearSelectedProduct, fetchProductByIdAsync, resetProductFetchStatus, selectProductFetchStatus, selectSelectedProduct } from '../ProductSlice'
 import { Box,Checkbox,Rating, Stack,Typography, useMediaQuery,Button,Paper} from '@mui/material'
-import { addToCartAsync, resetCartItemAddStatus, selectCartItemAddStatus, selectCartItems } from '../../cart/CartSlice'
+import { addToCartAsync, resetCartItemAddStatus, updateCartItemByIdAsync, selectCartItemAddStatus, selectCartItems } from '../../cart/CartSlice'
 import { selectLoggedInUser } from '../../auth/AuthSlice'
 import { fetchReviewsByProductIdAsync,resetReviewFetchStatus,selectReviewFetchStatus,selectReviews,} from '../../review/ReviewSlice'
 import { Reviews } from '../../review/components/Reviews'
@@ -66,7 +66,7 @@ export const ProductDetails = () => {
 
     const wishlistItemAddStatus=useSelector(selectWishlistItemAddStatus)
     const wishlistItemDeleteStatus=useSelector(selectWishlistItemDeleteStatus)
-    
+
     const navigate=useNavigate()
     useEffect(()=>{
         window.scrollTo({
@@ -74,7 +74,7 @@ export const ProductDetails = () => {
             behavior:"instant"
         })
     },[])
-    
+
     useEffect(()=>{
         if(id){
             dispatch(fetchProductByIdAsync(id))
@@ -84,12 +84,9 @@ export const ProductDetails = () => {
 
     useEffect(()=>{
 
-        if(cartItemAddStatus==='fulfilled'){
-            toast.success("Product added to cart")
-        }
-
-        else if(cartItemAddStatus==='rejected'){
+        if(cartItemAddStatus==='rejected'){
             toast.error('Error adding product to cart, please try again later')
+            dispatch(resetCartItemAddStatus());
         }
     },[cartItemAddStatus])
 
@@ -134,18 +131,62 @@ export const ProductDetails = () => {
         }
     },[])
 
-    const handleAddToCart=()=>{
-        const item={user:loggedInUser._id,product:id,quantity}
-        dispatch(addToCartAsync(item))
-        setQuantity(1)
-    }
+    // const handleAddToCart=()=>{
+    //     const item={user:loggedInUser._id,product:id,quantity}
+    //     dispatch(addToCartAsync(item))
+    //     setQuantity(1)
+    // }
+
+    const handleAddToCart = () => {
+        if (!loggedInUser) {
+            toast.error("Please login to add items to your cart");
+            return;
+        }
+
+        const existingItem = cartItems.find(
+            (item) => item.product._id === id && item.user === loggedInUser._id
+        );
+
+        if (existingItem) {
+            const newQuantity = existingItem.quantity + quantity;
+
+            if (newQuantity > product.stockQuantity) {
+                toast.warning(`Only ${product.stockQuantity} items are available in stock.`);
+                return;
+            }
+
+            const updatedItem = {
+                ...existingItem,
+                quantity: newQuantity,
+            };
+            dispatch(updateCartItemByIdAsync(updatedItem));
+            toast.info("Cart updated successfully");
+        } else {
+            if (quantity > product.stockQuantity) {
+                toast.warning(`Only ${product.stockQuantity} items are available in stock.`);
+                return;
+            }
+
+            const newItem = {
+                user: loggedInUser._id,
+                product: id,
+                quantity,
+            };
+            dispatch(addToCartAsync(newItem));
+            toast.success("Product added to cart");
+            dispatch(resetCartItemAddStatus());
+        }
+
+        setQuantity(1);
+    };
+
 
     const handleDecreaseQty=()=>{
         if(quantity!==1){
             setQuantity(quantity-1)
         }
     }
-    
+
     const handleIncreaseQty=()=>{
         if(quantity<20 && quantity<product.stockQuantity){
             setQuantity(quantity+1)
@@ -182,7 +223,7 @@ export const ProductDetails = () => {
     const handleStepChange = (step) => {
         setActiveStep(step);
     };
-    
+
 
   return (
     <>
@@ -194,7 +235,7 @@ export const ProductDetails = () => {
             </Stack>
             :
             <Stack>
-                
+
                 {/* product details */}
                 <Stack width={is480?"auto":is1420?"auto":'88rem'} p={is480?2:0} height={is840?"auto":"50rem"} rowGap={5} mt={is840?0:5} justifyContent={'center'} mb={5} flexDirection={is840?"column":"row"} columnGap={is990?"2rem":"5rem"}>
 
@@ -211,7 +252,7 @@ export const ProductDetails = () => {
                                 ))
                             }
                         </Stack>}
-                        
+
                         {/* selected image */}
                         <Stack mt={is480?"0rem":'5rem'}>
                             {
@@ -222,7 +263,7 @@ export const ProductDetails = () => {
                                         product?.images.map((image,index) => (
                                         <div key={index} style={{width:"100%",height:'100%'}}>
                                             {
-                                            Math.abs(activeStep - index) <= 2 
+                                            Math.abs(activeStep - index) <= 2
                                                 ?
                                                 <Box component="img" sx={{width:'100%',objectFit:"contain",overflow:"hidden",aspectRatio:1/1}} src={image} alt={product?.title} />
                                                 :
@@ -257,7 +298,15 @@ export const ProductDetails = () => {
                             <Stack sx={{flexDirection:"row",columnGap:is340?".5rem":"1rem",alignItems:"center",flexWrap:'wrap',rowGap:'1rem'}}>
                                 <Rating value={averageRating} readOnly/>
                                 <Typography>( {totalReviews===0?"No reviews":totalReviews===1?`${totalReviews} Review`:`${totalReviews} Reviews`} )</Typography>
-                                <Typography color={product?.stockQuantity<=10?"error":product?.stockQuantity<=20?"orange":"green"}>{product?.stockQuantity<=10?`Only ${product?.stockQuantity} left`:product?.stockQuantity<=20?"Only few left":"In Stock"}</Typography>
+                                <Typography color={
+                                    product?.stockQuantity === 0 ? "error" :
+                                        product?.stockQuantity <= 10 ? "error" :
+                                            product?.stockQuantity <= 20 ? "orange" : "green"
+                                }>
+                                    {product?.stockQuantity === 0 ? "Out of Stock" :
+                                        product?.stockQuantity <= 10 ? `Only ${product?.stockQuantity} left` :
+                                            product?.stockQuantity <= 20 ? "Only few left" : "In Stock"}
+                                </Typography>
                             </Stack>
 
                             {/* price */}
@@ -269,13 +318,13 @@ export const ProductDetails = () => {
                             <Typography>{product?.description}</Typography>
                             <hr />
                         </Stack>
-                        
+
 
                         {/* color, size and add-to-cart */}
 
                         {
                             !loggedInUser?.isAdmin &&
-                        
+
                         <Stack sx={{rowGap:"1.3rem"}} width={'fit-content'}>
 
                             {/* colors */}
@@ -291,7 +340,7 @@ export const ProductDetails = () => {
                                     }
                                 </Stack>
                             </Stack>
-                            
+
                             {/* size */}
                             <Stack flexDirection={'row'} alignItems={'center'} columnGap={is387?'5px':'1rem'} width={'fit-content'}>
                                 <Typography>Size: </Typography>
@@ -308,10 +357,10 @@ export const ProductDetails = () => {
 
                             {/* quantity , add to cart and wishlist */}
                             <Stack flexDirection={"row"} columnGap={is387?".3rem":"1.5rem"} width={'100%'} >
-                                
+
                                 {/* qunatity */}
                                 <Stack flexDirection={'row'} alignItems={'center'} justifyContent={'space-between'}>
-                                    
+
                                     <MotionConfig whileHover={{scale:1.050}} whileTap={{scale:1}}>
                                         <motion.button onClick={handleDecreaseQty}  style={{padding:"10px 15px",fontSize:"1.050rem",backgroundColor:"",color:"black",outline:"none",border:'1px solid black',borderRadius:"8px"}}>-</motion.button>
                                         <p style={{margin:"0 1rem",fontSize:"1.1rem",fontWeight:'400'}}>{quantity}</p>
@@ -319,13 +368,24 @@ export const ProductDetails = () => {
                                     </MotionConfig>
 
                                 </Stack>
-                                
+
                                 {/* add to cart */}
-                                {
-                                    isProductAlreadyInCart?
-                                    <button style={{padding:"10px 15px",fontSize:"1.050rem",backgroundColor:"black",color:"white",outline:"none",border:'none',borderRadius:"8px"}} onClick={()=>navigate("/cart")}>In Cart</button>
-                                    :<motion.button whileHover={{scale:1.050}} whileTap={{scale:1}} onClick={handleAddToCart} style={{padding:"10px 15px",fontSize:"1.050rem",backgroundColor:"black",color:"white",outline:"none",border:'none',borderRadius:"8px"}}>Add To Cart</motion.button>
-                                }
+                                    <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 1 }}
+                                onClick={handleAddToCart}
+                                style={{
+                                    padding: "10px 15px",
+                                    fontSize: "1.05rem",
+                                    backgroundColor: "black",
+                                    color: "white",
+                                    outline: "none",
+                                    border: 'none',
+                                    borderRadius: "8px"
+                                }}
+                            >
+                                Add To Cart
+                            </motion.button>
 
                                 {/* wishlist */}
                                 <motion.div style={{border:"1px solid grayText",borderRadius:"4px",display:"flex",justifyContent:"center",alignItems:"center"}}>
@@ -336,13 +396,13 @@ export const ProductDetails = () => {
                             </Stack>
 
                         </Stack>
-                        
+
                         }
 
 
                         {/* product perks */}
                         <Stack mt={3} sx={{justifyContent:"center",alignItems:'center',border:"1px grayText solid",borderRadius:"7px"}}>
-                            
+
                             <Stack p={2} flexDirection={'row'} alignItems={"center"} columnGap={'1rem'} width={'100%'} justifyContent={'flex-sart'}>
                                 <Box>
                                     <LocalShippingOutlinedIcon/>
@@ -366,17 +426,17 @@ export const ProductDetails = () => {
                         </Stack>
 
                     </Stack>
-                    
+
                 </Stack>
 
                 {/* reviews */}
                 <Stack width={is1420?"auto":'88rem'} p={is480?2:0}>
-                    <Reviews productId={id} averageRating={averageRating}/>       
+                    <Reviews productId={id} averageRating={averageRating}/>
                 </Stack>
-            
+
             </Stack>
         }
-                
+
     </Stack>
     }
     </>

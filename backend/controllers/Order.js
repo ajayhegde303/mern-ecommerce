@@ -1,13 +1,28 @@
 const Order = require("../models/Order");
+const Product = require("../models/Product");
 
-exports.create=async(req,res)=>{
+exports.create = async (req, res) => {
     try {
-        const created=new Order(req.body)
-        await created.save()
-        res.status(201).json(created)
+        const created = new Order(req.body);
+        await created.save();
+
+        // 🔹 Reduce stock for each product in the order
+        for (const item of req.body.item) {
+            const productId = item.product._id || item.product;
+            const quantity = item.quantity || 1;
+
+            await Product.findByIdAndUpdate(
+                productId,
+                { $inc: { stockQuantity: -quantity } }
+            );
+        }
+
+        res.status(201).json(created);
     } catch (error) {
         console.log(error);
-        return res.status(500).json({message:'Error creating an order, please trying again later'})
+        return res
+            .status(500)
+            .json({ message: "Error creating an order, please try again later" });
     }
 }
 

@@ -1,7 +1,8 @@
 import {FormControl, Grid, IconButton, InputLabel, MenuItem, Select, Stack, Typography, useMediaQuery, useTheme } from '@mui/material'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchProductsAsync, resetProductFetchStatus, selectProductFetchStatus, selectProductIsFilterOpen, selectProductTotalResults, selectProducts, toggleFilters } from '../ProductSlice'
+// ✨ ADD `selectSearchTerm` to imports
+import { fetchProductsAsync, resetProductFetchStatus, selectProductFetchStatus, selectProductIsFilterOpen, selectProductTotalResults, selectProducts, selectSearchTerm, toggleFilters } from '../ProductSlice'
 import { ProductCard } from './ProductCard'
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -51,16 +52,13 @@ export const ProductList = () => {
     const products=useSelector(selectProducts)
     const totalResults=useSelector(selectProductTotalResults)
     const loggedInUser=useSelector(selectLoggedInUser)
-
     const productFetchStatus=useSelector(selectProductFetchStatus)
-
     const wishlistItems=useSelector(selectWishlistItems)
     const wishlistItemAddStatus=useSelector(selectWishlistItemAddStatus)
     const wishlistItemDeleteStatus=useSelector(selectWishlistItemDeleteStatus)
-
     const cartItemAddStatus=useSelector(selectCartItemAddStatus)
-
     const isProductFilterOpen=useSelector(selectProductIsFilterOpen)
+    const searchTerm = useSelector(selectSearchTerm); // ✨ GET search term from Redux store
 
     const dispatch=useDispatch()
 
@@ -94,7 +92,7 @@ export const ProductList = () => {
 
     useEffect(()=>{
         setPage(1)
-    },[totalResults])
+    },[totalResults, searchTerm]) // ✨ Reset page to 1 on a new search
 
 
     useEffect(()=>{
@@ -102,14 +100,15 @@ export const ProductList = () => {
 
         finalFilters['pagination']={page:page,limit:ITEMS_PER_PAGE}
         finalFilters['sort']=sort
+        finalFilters['searchTerm'] = searchTerm; // ✨ INCLUDE search term in API call
 
         if(!loggedInUser?.isAdmin){
             finalFilters['user']=true
         }
 
         dispatch(fetchProductsAsync(finalFilters))
-        
-    },[filters,page,sort])
+
+    },[filters,page,sort, searchTerm, dispatch, loggedInUser]) // ✨ ADD searchTerm to dependency array
 
 
     const handleAddRemoveFromWishlist=(e,productId)=>{
@@ -150,7 +149,7 @@ export const ProductList = () => {
         else if(cartItemAddStatus==='rejected'){
             toast.error("Error adding product to cart, please try again later")
         }
-        
+
     },[cartItemAddStatus])
 
     useEffect(()=>{
@@ -173,147 +172,156 @@ export const ProductList = () => {
         dispatch(toggleFilters())
     }
 
-  return (
-    <>
-    {/* filters side bar */}
-
-    {
-        productFetchStatus==='pending'?
-        <Stack width={is500?"35vh":'25rem'} height={'calc(100vh - 4rem)'} justifyContent={'center'} marginRight={'auto'} marginLeft={'auto'}>
-            <Lottie animationData={loadingAnimation}/>
-        </Stack>
-        :
+    return (
         <>
-        <motion.div style={{position:"fixed",backgroundColor:"white",height:"100vh",padding:'1rem',overflowY:"scroll",width:is500?"100vw":"30rem",zIndex:500}}  variants={{show:{left:0},hide:{left:-500}}} initial={'hide'} transition={{ease:"easeInOut",duration:.7,type:"spring"}} animate={isProductFilterOpen===true?"show":"hide"}>
+            {/* filters side bar */}
 
-            {/* fitlers section */}
-            <Stack mb={'5rem'}  sx={{scrollBehavior:"smooth",overflowY:"scroll"}}>
-
-                    
-                        <Typography variant='h4'>New Arrivals</Typography>
-
-
-                            <IconButton onClick={handleFilterClose} style={{position:"absolute",top:15,right:15}}>
-                                <motion.div whileHover={{scale:1.1}} whileTap={{scale:0.9}}>
-                                    <ClearIcon fontSize='medium'/>
-                                </motion.div>
-                            </IconButton>
-
-
-                    <Stack rowGap={2} mt={4} >
-                        <Typography sx={{cursor:"pointer"}} variant='body2'>Totes</Typography>
-                        <Typography sx={{cursor:"pointer"}} variant='body2'>Backpacks</Typography>
-                        <Typography sx={{cursor:"pointer"}} variant='body2'>Travel Bags</Typography>
-                        <Typography sx={{cursor:"pointer"}} variant='body2'>Hip Bags</Typography>
-                        <Typography sx={{cursor:"pointer"}} variant='body2'>Laptop Sleeves</Typography>
+            {
+                productFetchStatus==='pending'?
+                    <Stack width={is500?"35vh":'25rem'} height={'calc(100vh - 4rem)'} justifyContent={'center'} marginRight={'auto'} marginLeft={'auto'}>
+                        <Lottie animationData={loadingAnimation}/>
                     </Stack>
+                    :
+                    <>
+                        <motion.div style={{position:"fixed",backgroundColor:"white",height:"100vh",padding:'1rem',overflowY:"scroll",width:is500?"100vw":"30rem",zIndex:500}}  variants={{show:{left:0},hide:{left:-500}}} initial={'hide'} transition={{ease:"easeInOut",duration:.7,type:"spring"}} animate={isProductFilterOpen===true?"show":"hide"}>
 
-                    {/* brand filters */}
-                    <Stack mt={2}>
-                        <Accordion>
-                            <AccordionSummary expandIcon={<AddIcon />}  aria-controls="brand-filters" id="brand-filters" >
-                                    <Typography>Brands</Typography>
-                            </AccordionSummary>
+                            {/* fitlers section */}
+                            <Stack mb={'5rem'}  sx={{scrollBehavior:"smooth",overflowY:"scroll"}}>
 
-                            <AccordionDetails sx={{p:0}}>
-                                <FormGroup onChange={handleBrandFilters}>
+
+                                <Typography variant='h4'>New Arrivals</Typography>
+
+
+                                <IconButton onClick={handleFilterClose} style={{position:"absolute",top:15,right:15}}>
+                                    <motion.div whileHover={{scale:1.1}} whileTap={{scale:0.9}}>
+                                        <ClearIcon fontSize='medium'/>
+                                    </motion.div>
+                                </IconButton>
+
+
+                                <Stack rowGap={2} mt={4} >
+                                    <Typography sx={{cursor:"pointer"}} variant='body2'>Totes</Typography>
+                                    <Typography sx={{cursor:"pointer"}} variant='body2'>Backpacks</Typography>
+                                    <Typography sx={{cursor:"pointer"}} variant='body2'>Travel Bags</Typography>
+                                    <Typography sx={{cursor:"pointer"}} variant='body2'>Hip Bags</Typography>
+                                    <Typography sx={{cursor:"pointer"}} variant='body2'>Laptop Sleeves</Typography>
+                                </Stack>
+
+                                {/* brand filters */}
+                                <Stack mt={2}>
+                                    <Accordion>
+                                        <AccordionSummary expandIcon={<AddIcon />}  aria-controls="brand-filters" id="brand-filters" >
+                                            <Typography>Brands</Typography>
+                                        </AccordionSummary>
+
+                                        <AccordionDetails sx={{p:0}}>
+                                            <FormGroup onChange={handleBrandFilters}>
+                                                {
+                                                    brands?.map((brand)=>(
+                                                        <motion.div key={brand._id} style={{width:"fit-content"}} whileHover={{x:5}} whileTap={{scale:0.9}}>
+                                                            <FormControlLabel sx={{ml:1}} control={<Checkbox whileHover={{scale:1.1}} />} label={brand.name} value={brand._id} />
+                                                        </motion.div>
+                                                    ))
+                                                }
+                                            </FormGroup>
+                                        </AccordionDetails>
+                                    </Accordion>
+                                </Stack>
+
+                                {/* category filters */}
+                                <Stack mt={2}>
+                                    <Accordion>
+                                        <AccordionSummary expandIcon={<AddIcon />}  aria-controls="brand-filters" id="brand-filters" >
+                                            <Typography>Category</Typography>
+                                        </AccordionSummary>
+
+                                        <AccordionDetails sx={{p:0}}>
+                                            <FormGroup onChange={handleCategoryFilters}>
+                                                {
+                                                    categories?.map((category)=>(
+                                                        <motion.div key={category._id} style={{width:"fit-content"}} whileHover={{x:5}} whileTap={{scale:0.9}}>
+                                                            <FormControlLabel sx={{ml:1}} control={<Checkbox whileHover={{scale:1.1}} />} label={category.name} value={category._id} />
+                                                        </motion.div>
+                                                    ))
+                                                }
+                                            </FormGroup>
+                                        </AccordionDetails>
+                                    </Accordion>
+                                </Stack>
+                            </Stack>
+
+                        </motion.div>
+
+                        <Stack mb={'3rem'}>
+
+
+                            {/* banners section */}
+                            {
+                                !is600 &&
+
+                                <Stack sx={{width:"100%",height:is800?"300px":is1200?"400px":"500px"}}>
+                                    <ProductBanner images={bannerImages}/>
+                                </Stack>
+                            }
+
+                            {/* products */}
+                            <Stack rowGap={5} mt={is600?2:0}>
+
+                                {/* sort options */}
+                                <Stack flexDirection={'row'} mr={'2rem'} justifyContent={'flex-end'} alignItems={'center'} columnGap={5}>
+
+                                    <Stack alignSelf={'flex-end'} width={'12rem'}>
+                                        <FormControl fullWidth>
+                                            <InputLabel id="sort-dropdown">Sort</InputLabel>
+                                            <Select
+                                                variant='standard'
+                                                labelId="sort-dropdown"
+                                                label="Sort"
+                                                onChange={(e)=>setSort(e.target.value)}
+                                                value={sort || ''}
+                                            >
+                                                <MenuItem value={null}>Reset</MenuItem>
+                                                {
+                                                    sortOptions.map((option)=>(
+                                                        <MenuItem key={option.name} value={option}>{option.name}</MenuItem>
+                                                    ))
+                                                }
+                                            </Select>
+                                        </FormControl>
+                                    </Stack>
+
+                                </Stack>
+
+                                {/* product grid */}
+                                <Grid gap={is700?1:2} container justifyContent={'center'} alignContent={'center'}>
                                     {
-                                        brands?.map((brand)=>(
-                                            <motion.div style={{width:"fit-content"}} whileHover={{x:5}} whileTap={{scale:0.9}}>
-                                                <FormControlLabel sx={{ml:1}} control={<Checkbox whileHover={{scale:1.1}} />} label={brand.name} value={brand._id} />
-                                            </motion.div>
+                                        products.map((product)=>(
+                                            <ProductCard
+                                                key={product._id}
+                                                id={product._id}
+                                                title={product.title}
+                                                thumbnail={product.thumbnail}
+                                                brand={product.brand.name}
+                                                price={product.price}
+                                                stockQuantity={product.stockQuantity}
+                                                handleAddRemoveFromWishlist={handleAddRemoveFromWishlist}
+                                            />
                                         ))
                                     }
-                                </FormGroup>
-                            </AccordionDetails>
-                        </Accordion>
-                    </Stack>
+                                </Grid>
 
-                    {/* category filters */}
-                    <Stack mt={2}>
-                        <Accordion>
-                            <AccordionSummary expandIcon={<AddIcon />}  aria-controls="brand-filters" id="brand-filters" >
-                                    <Typography>Category</Typography>
-                            </AccordionSummary>
+                                {/* pagination */}
+                                <Stack alignSelf={is488?'center':'flex-end'} mr={is488?0:5} rowGap={2} p={is488?1:0}>
+                                    <Pagination size={is488?'medium':'large'} page={page}  onChange={(e,page)=>setPage(page)} count={Math.ceil(totalResults/ITEMS_PER_PAGE)} variant="outlined" shape="rounded" />
+                                    <Typography textAlign={'center'}>Showing {(page-1)*ITEMS_PER_PAGE+1} to {page*ITEMS_PER_PAGE>totalResults?totalResults:page*ITEMS_PER_PAGE} of {totalResults} results</Typography>
+                                </Stack>
 
-                            <AccordionDetails sx={{p:0}}>
-                                <FormGroup onChange={handleCategoryFilters}>
-                                    {
-                                        categories?.map((category)=>(
-                                            <motion.div style={{width:"fit-content"}} whileHover={{x:5}} whileTap={{scale:0.9}}>
-                                                <FormControlLabel sx={{ml:1}} control={<Checkbox whileHover={{scale:1.1}} />} label={category.name} value={category._id} />
-                                            </motion.div>
-                                        ))
-                                    }
-                                </FormGroup>
-                            </AccordionDetails>
-                        </Accordion>
-                    </Stack>
-            </Stack>
+                            </Stack>
 
-        </motion.div>
-        
-        <Stack mb={'3rem'}>
-            
-
-                {/* banners section */}
-                {
-                    !is600 && 
-                
-                <Stack sx={{width:"100%",height:is800?"300px":is1200?"400px":"500px"}}>
-                    <ProductBanner images={bannerImages}/>
-                </Stack>
-                }
-
-                {/* products */}
-                <Stack rowGap={5} mt={is600?2:0}>
-
-                    {/* sort options */}
-                    <Stack flexDirection={'row'} mr={'2rem'} justifyContent={'flex-end'} alignItems={'center'} columnGap={5}>
-                                        
-                        <Stack alignSelf={'flex-end'} width={'12rem'}>
-                            <FormControl fullWidth>
-                                    <InputLabel id="sort-dropdown">Sort</InputLabel>
-                                    <Select
-                                        variant='standard'
-                                        labelId="sort-dropdown"
-                                        label="Sort"
-                                        onChange={(e)=>setSort(e.target.value)}
-                                        value={sort}
-                                    >
-                                        <MenuItem bgcolor='text.secondary' value={null}>Reset</MenuItem>
-                                        {
-                                            sortOptions.map((option)=>(
-                                                <MenuItem key={option} value={option}>{option.name}</MenuItem>
-                                            ))
-                                        }
-                                    </Select>
-                            </FormControl>
                         </Stack>
-                    
-                    </Stack>
+                    </>
+            }
 
-                    {/* product grid */}
-                    <Grid gap={is700?1:2} container justifyContent={'center'} alignContent={'center'}>
-                        {
-                            products.map((product)=>(
-                                <ProductCard key={product._id} id={product._id} title={product.title} thumbnail={product.thumbnail} brand={product.brand.name} price={product.price} handleAddRemoveFromWishlist={handleAddRemoveFromWishlist}/>
-                            ))
-                        }
-                    </Grid>
-                    
-                    {/* pagination */}
-                    <Stack alignSelf={is488?'center':'flex-end'} mr={is488?0:5} rowGap={2} p={is488?1:0}>
-                        <Pagination size={is488?'medium':'large'} page={page}  onChange={(e,page)=>setPage(page)} count={Math.ceil(totalResults/ITEMS_PER_PAGE)} variant="outlined" shape="rounded" />
-                        <Typography textAlign={'center'}>Showing {(page-1)*ITEMS_PER_PAGE+1} to {page*ITEMS_PER_PAGE>totalResults?totalResults:page*ITEMS_PER_PAGE} of {totalResults} results</Typography>
-                    </Stack>    
-                
-                </Stack>
-                
-        </Stack>
         </>
-    }
-
-    </>
-  )
+    )
 }

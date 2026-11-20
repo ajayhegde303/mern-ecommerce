@@ -1,38 +1,38 @@
-import {axiosi} from '../../config/axios'
+import { axiosi } from '../../config/axios'
 
 
-export const createOrder=async(order)=>{
+export const createOrder = async (order) => {
     try {
-        const res=await axiosi.post("/orders",order)
+        const res = await axiosi.post("/orders", order)
         return res.data
     } catch (error) {
-        throw error.response.data
+        throw error.response?.data || error
     }
 }
 
-export const getOrderByUserId=async(id)=>{
+export const getOrderByUserId = async (id) => {
     try {
-        const res=await axiosi.get(`/orders/user/${id}`)
+        const res = await axiosi.get(`/orders/user/${id}`)
         return res.data
     } catch (error) {
-        throw error.response.data
+        throw error.response?.data || error
     }
 }
 
-export const getAllOrders=async()=>{
+export const getAllOrders = async () => {
     try {
-        const res=await axiosi.get(`/orders`)
+        const res = await axiosi.get(`/orders`)
         return res.data
     } catch (error) {
-        throw error.response.data
+        throw error.response?.data || error
     }
 }
 
-export const updateOrderById=async(update)=>{
+export const updateOrderById = async (update) => {
     try {
-        const res=await axiosi.patch(`/orders/${update._id}`,update)
+        const res = await axiosi.patch(`/orders/${update._id}`, update)
         return res.data
     } catch (error) {
-        throw error.response.data
+        throw error.response?.data || error
     }
 }
